@@ -1,8 +1,9 @@
 # meta developer: @mofkomodules
 # sosal? 
 # name: TopStat
+# da, sosal
 
-__version__ = (6, 6, 6)
+__version__ = (1, 4, 8)
 
 from .. import loader, utils
 from collections import defaultdict
@@ -31,10 +32,10 @@ class TopStat(loader.Module):
         """
         chat_entity = await message.get_chat()
         if not chat_entity:
-            await utils.answer_message(message, "Эта команда работает только в группах и каналах.")
+            await message.edit(message, "Эта команда работает только в группах и каналах.")
             return
 
-        processing_message = await utils.answer_message(message, "Собираю статистику сообщений, это может занять некоторое время...")
+        processing_message = await message.edit(message, "Собираю статистику сообщений, это может занять некоторое время...")
 
         msg_counts = defaultdict(int)
         users_info = {}
