@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @loader.tds
 class TopStat(loader.Module):
     """
-    Модуль для сбора топа пользователей по сообщениям в чате.
+    Модуль чтобы поесть говна.
     """
     strings = {"name": "TopStat"}
 
@@ -22,19 +22,12 @@ class TopStat(loader.Module):
 
     @loader.command(
         ru_doc="Показывает топ пользователей по сообщениям в текущем чате.\n"
-              "Использование: .msgtop [лимит_сообщений] [топ_N]\n"
-              "По умолчанию: 5000 последних сообщений, топ 10 пользователей.\n"
-              "Пример: .msgtop 10000 (покажет топ 10 из 10000 сообщений)\n"
-              "Пример: .msgtop 2000 5 (покажет топ 5 из 2000 сообщений)",
+              ,
         en_doc="Shows top users by messages in the current chat.\n"
-              "Usage: .msgtop [messages_limit] [top_N]\n"
-              "Defaults: last 5000 messages, top 10 users.\n"
-              "Example: .msgtop 10000 (shows top 10 from 10000 messages)\n"
-              "Example: .msgtop 2000 5 (shows top 5 from 2000 messages)"
     )
     async def msgtopcmd(self, message):
         """
-        Показывает топ пользователей по сообщениям в текущем чате.
+        Показывает топ говноедов по сообщениям в чате.
         """
         chat_entity = await message.get_chat()
         if not chat_entity:
