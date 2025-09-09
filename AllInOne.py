@@ -1,7 +1,7 @@
 # meta developer: @mofkomodules
 # name: AllInOne
 
-__version__ = (1, 0, 0)
+__version__ = (1, 0, 1)
 
 from telethon import types
 from .. import loader, utils
