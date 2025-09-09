@@ -71,10 +71,10 @@ class TopStat(loader.Module):
                 requested_top_n_limit = int(args[1])
                 if requested_top_n_limit < min_top_n:
                     current_top_n_limit = min_top_n
-                    await utils.answer_message(message, f"Количество пользователей в топе слишком мало ({requested_top_n_limit}), установлен минимум: {min_top_n}", reply_to=processing_message)
+                    await utils.answer_message(message, f"Количество пользователей в топе слишком маловато ({requested_top_n_limit}), установлен минимум: {min_top_n}", reply_to=processing_message)
                 elif requested_top_n_limit > max_top_n:
                     current_top_n_limit = max_top_n
-                    await utils.answer_message(message, f"Количество пользователей в топе слишком велико ({requested_top_n_limit}), установлен максимум: {max_top_n}", reply_to=processing_message)
+                    await utils.answer_message(message, f"Количество пользователей в топе слишком дахуя ({requested_top_n_limit}), установлен максимум: {max_top_n}", reply_to=processing_message)
                 else:
                     current_top_n_limit = requested_top_n_limit
         
@@ -88,12 +88,12 @@ class TopStat(loader.Module):
                         users_info[user_id] = msg.sender
         except Exception as e:
             logger.error(f"Error collecting stats in chat {chat_entity.id}: {e}", exc_info=True)
-            await utils.answer_message(message, f"Ошибка при сборе статистики: {e}", reply_to=processing_message)
+            await utils.answer_message(message, f"Ошибка статистики: {e}", reply_to=processing_message)
             await processing_message.delete()
             return
 
         if not msg_counts:
-            await utils.answer_message(message, f"Не удалось собрать статистику сообщений в этом чате или в заданном лимите ({current_messages_limit} сообщений).", reply_to=processing_message)
+            await utils.answer_message(message, f"Не удалось собрать статистику сообщений в этом чате или в заданном ыыыыы ({current_messages_limit} сообщений).", reply_to=processing_message)
             await processing_message.delete()
             return
 
