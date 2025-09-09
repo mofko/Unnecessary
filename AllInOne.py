@@ -11,7 +11,7 @@ class AllInOne(loader.Module):
     """Интерактивный модуль для чатов!"""
     strings = {"name": "AllInOne"}
 
-    async def tagallcmd(self, message):
+    async def sborcmd(self, message):
         """<текст> - Общий сбор."""
         args = utils.get_args_raw(message)
         chat = await message.get_chat()
