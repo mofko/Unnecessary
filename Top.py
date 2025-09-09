@@ -1,6 +1,6 @@
 # meta developer: @mofkomodules 
 
-__version__ = (1, 0, 1)
+__version__ = (1, 0, 3)
 
 from .. import loader, utils
 from collections import defaultdict
@@ -39,7 +39,7 @@ class TopStat(loader.Module):
             await utils.answer_message(message, "Эта команда работает только в группах и каналах.")
             return
 
-        processing_message = await utils.answer_message(message, "Собираю статистику сообщений, это может занять некоторое время...")
+        processing_message = await message.edit(message, "Собираю статистику сообщений, это может занять некоторое время...")
 
         msg_counts = defaultdict(int)
         users_info = {}
