@@ -1,6 +1,6 @@
 # meta developer: @mofkomodules
 # name: AllInOne
-version = (1, 0, 1)
+version = (1, 0, 2)
 
 from telethon import types
 from .. import loader, utils
@@ -24,11 +24,11 @@ class AllInOne(loader.Module):
 
         participants = await message.client.get_participants(chat)
         
-        mentions = [
-            f"<a href='tg://user?id={user.id}'>{user.full_name or user.username or str(user.id)}</a>"
-            for user in participants
-            if not user.bot
-        ]
+        mentions = []
+        for user in participants:
+            if user.bot:
+                continue
+            mentions.append(f"<a href='tg://user?id={user.id}'>{user.first_name}</a>")
 
         if not mentions:
             await message.edit("<b>🚫 У вас тут пусто...</b>")
