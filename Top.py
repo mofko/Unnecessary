@@ -1,4 +1,6 @@
-# meta developer: @mofkomodules 
+# meta developer: @mofkomodules
+# sosal? 
+# name: TopStat
 
 __version__ = (1, 0, 3)
 
