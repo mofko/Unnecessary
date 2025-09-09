@@ -8,11 +8,11 @@ from .. import loader, utils
 
 @loader.tds
 class AllInOne(loader.Module):
-    """Интерактивный модуль для чата!"""
+    """Интерактивный модуль для чатов!"""
     strings = {"name": "AllInOne"}
 
     async def sborcmd(self, message):
-        """<текст> - Общий сбор."""
+        """<текст> - Общий сбор!"""
         args = utils.get_args_raw(message)
         chat = await message.get_chat()
 
@@ -26,7 +26,6 @@ class AllInOne(loader.Module):
         mentions = []
         for user in participants:
             if not user.bot:
-                # Формируем имя пользователя: полное имя, затем имя пользователя, затем ID
                 full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
                 display_name = full_name or user.username or str(user.id)
                 mentions.append(f"<a href='tg://user?id={user.id}'>{display_name}</a>")
