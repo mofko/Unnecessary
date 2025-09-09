@@ -3,7 +3,7 @@
 # name: TopStat
 # da, sosal
 
-__version__ = (1, 4, 8)
+__version__ = (7, 7, 7)
 
 from .. import loader, utils
 from collections import defaultdict
