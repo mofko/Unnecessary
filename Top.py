@@ -1,6 +1,6 @@
 # meta developer: @mofkomodules 
 
-__version__ = (1, 0, 0)
+__version__ = (1, 0, 1)
 
 from .. import loader, utils
 from collections import defaultdict
@@ -9,11 +9,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 @loader.tds
-class MsgTopStatsMod(loader.Module):
+class TopStat(loader.Module):
     """
     Модуль для сбора топа пользователей по сообщениям в чате.
     """
-    strings = {"name": "MsgTopStats"}
+    strings = {"name": "TopStat"}
 
     async def client_ready(self, client, db):
         self.client = client
@@ -45,14 +45,13 @@ class MsgTopStatsMod(loader.Module):
         users_info = {}
         total_messages_scanned = 0
 
-        # Default limits
         messages_limit_default = 5000
         top_n_limit_default = 10
         
         min_messages_limit = 100
-        max_messages_limit = 20000 # Max reasonable limit for Heroku's timeout
+        max_messages_limit = 20000
         min_top_n = 1
-        max_top_n = 50 # Max top users to display
+        max_top_n = 50 
 
         current_messages_limit = messages_limit_default
         current_top_n_limit = top_n_limit_default
