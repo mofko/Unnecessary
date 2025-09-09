@@ -1,3 +1,7 @@
+# meta developer: @mofkomodules 
+
+__version__ = (1, 0, 0)
+
 from .. import loader, utils
 from collections import defaultdict
 import logging
@@ -31,7 +35,7 @@ class MsgTopStatsMod(loader.Module):
         Показывает топ пользователей по сообщениям в текущем чате.
         """
         chat_entity = await message.get_chat()
-        if not chat_entity or chat_entity.is_private:
+        if not chat_entity:
             await utils.answer_message(message, "Эта команда работает только в группах и каналах.")
             return
 
