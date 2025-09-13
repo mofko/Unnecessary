@@ -3,7 +3,7 @@
 # name: TopStat
 # da, sosal
 
-__version__ = (7, 7, 7)
+__version__ = (6, 6, 6)
 
 from .. import loader, utils
 from collections import defaultdict
@@ -35,7 +35,7 @@ class TopStat(loader.Module):
             await message.edit(message, "Эта команда работает только в группах и каналах.")
             return
 
-        processing_message = await message.edit(message, "Собираю статистику сообщений, это может занять некоторое время...")
+        processing_message = utils.answer(message, "Собираю статистику сообщений, это может занять некоторое время...")
 
         msg_counts = defaultdict(int)
         users_info = {}
