@@ -1,74 +1,65 @@
 # meta developer: @mofkomodules 
 # name: TopStat
 
-__version__ = (1, 0, 0)
+__version__ = (2, 0, 0)
 
-from telethon import events
-from collections import defaultdict
 from heroku.module_base import Module
-from heroku.utils import register_cmd, register_message_handler
+from telethon import events
+import asyncio
 
 class TopStat(Module):
-    """
-    Стата чата.
-    """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, client, db):
+        super().__init__(client, db)
+        self.message_counts = self.db.get("message_counts", {})
+        self.lock = asyncio.Lock()
 
-    async def _get_chat_counts(self, chat_id):
-        # DB structure: {'topstat_counts': {'chat_id_str': {'user_id_str': count}}}
-        all_counts = await self.client.db.get('topstat_counts', {})
-        return defaultdict(int, all_counts.get(str(chat_id), {}))
+    async def _update_message_count(self, user_id):
+        async with self.lock:
+            user_id_str = str(user_id)
+            if user_id_str not in self.message_counts:
+                self.message_counts[user_id_str] = 0
+            self.message_counts[user_id_str] += 1
+            self.db["message_counts"] = self.message_counts
 
-    async def _set_chat_counts(self, chat_id, chat_counts):
-        all_counts = await self.client.db.get('topstat_counts', {})
-        all_counts[str(chat_id)] = dict(chat_counts)
-        await self.client.db.set('topstat_counts', all_counts)
+    @events.NewMessage()
+    async def msg_handler(self, event):
+        if event.sender_id and not event.outgoing:
+            await self._update_message_count(event.sender_id)
 
-    @register_message_handler(events.NewMessage(incoming=True, func=lambda e: e.is_group and e.message.text))
-    async def _message_counter(self, event):
-        sender = await event.get_sender()
-        if not sender or sender.bot or sender.deleted:
-            return
-
-        chat_id = event.chat_id
-        user_id = sender.id
-        
-        chat_counts = await self._get_chat_counts(chat_id)
-        chat_counts[str(user_id)] += 1
-        await self._set_chat_counts(chat_id, chat_counts)
-
-    @register_cmd(pattern="^.top$", description="Показывает топ-10 пользователей по сообщениям в текущем чате.")
+    @events.NewMessage(pattern=r"^\.msgtop(?: (\d+))?$", outgoing=True)
     async def msgtopcmd(self, event):
-        if not event.is_group:
-            await self.client.send_message(event.chat_id, "Эту команду можно использовать только в группах.", reply_to=event.id)
+        args = event.pattern_match.group(1)
+        top_n = int(args) if args else 10
+
+        if not self.message_counts:
+            await event.reply("📊 Статистика сообщений пока пуста.")
             return
 
-        chat_id = event.chat_id
-        chat_counts = await self._get_chat_counts(chat_id)
-        
-        if not chat_counts:
-            await self.client.send_message(event.chat_id, "Пока нет статистики сообщений в этом чате. Начните общаться, чтобы собрать топ!", reply_to=event.id)
+        sorted_users = sorted(self.message_counts.items(), key=lambda item: item[1], reverse=True)
+        top_users = sorted_users[:top_n]
+
+        if not top_users:
+            await event.reply("📊 Статистика сообщений пока пуста.")
             return
 
-        sorted_users = sorted(chat_counts.items(), key=lambda item: item[1], reverse=True)
-        
-        top_message = "📊 **Топ 10 по сообщениям в чате:**\n\n"
-        
-        for i, (user_id_str, count) in enumerate(sorted_users[:10]):
+        response_lines = [f"📊 **Топ-{top_n} пользователей по сообщениям:**\n"]
+        for i, (user_id_str, count) in enumerate(top_users):
+            user_id = int(user_id_str)
             try:
-                user_id = int(user_id_str)
                 user = await self.client.get_entity(user_id)
                 
-                display_name = user.first_name if user.first_name else ""
-                if user.last_name:
-                    display_name += f" {user.last_name}"
-                if not display_name: 
-                    display_name = user.username if user.username else str(user.id)
-                
-                user_link = f"[{display_name}](tg://user?id={user.id})"
-                
-                top_message += f"{i+1}. {user_link}: **{count}** сообщений\n"
+                display_name = user.full_name.strip()
+                if not display_name:
+                    display_name = user.username or f"ID: {user_id}"
+
+                if user.username:
+                    user_link = f"[{display_name}](t.me/{user.username})"
+                else:
+                    user_link = f"[{display_name}](tg://user?id={user_id})"
             except Exception:
-                top_message += f"{i+1}. Пользователь `{user_id_str}`: **{count}** сообщений (недоступен или удален)\n"
-        await self.client.send_message(event.chat_id, top_message, reply_to=event.id, parse_mode='md')
+                display_name = f"Удалённый пользователь ({user_id})"
+                user_link = display_name
+
+            response_lines.append(f"**{i+1}.** {user_link}: `{count}` сообщений")
+
+        await event.reply("\n".join(response_lines))
