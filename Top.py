@@ -1,125 +1,74 @@
-# meta developer: @mofkomodules
-# sosal? 
+# meta developer: @mofkomodules 
 # name: TopStat
-# da, sosal
 
-__version__ = (6, 6, 6)
+__version__ = (1, 0, 0)
 
-from .. import loader, utils
+from telethon import events
 from collections import defaultdict
-import logging
+from heroku.module_base import Module
+from heroku.utils import register_cmd, register_message_handler
 
-logger = logging.getLogger(__name__)
-
-@loader.tds
-class TopStat(loader.Module):
+class TopStat(Module):
     """
-    Модуль чтобы поесть говна.
+    Стата чата.
     """
-    strings = {"name": "TopStat"}
+    def __init__(self):
+        super().__init__()
 
-    async def client_ready(self, client, db):
-        self.client = client
+    async def _get_chat_counts(self, chat_id):
+        # DB structure: {'topstat_counts': {'chat_id_str': {'user_id_str': count}}}
+        all_counts = await self.client.db.get('topstat_counts', {})
+        return defaultdict(int, all_counts.get(str(chat_id), {}))
 
-    @loader.command(
-        ru_doc="Показывает топ пользователей по сообщениям в текущем чате.\n"
-              ,
-        en_doc="Shows top users by messages in the current chat.\n"
-    )
-    async def msgtopcmd(self, message):
-        """
-        Показывает топ говноедов по сообщениям в чате.
-        """
-        chat_entity = await message.get_chat()
-        if not chat_entity:
-            await message.edit(message, "Эта команда работает только в группах и каналах.")
+    async def _set_chat_counts(self, chat_id, chat_counts):
+        all_counts = await self.client.db.get('topstat_counts', {})
+        all_counts[str(chat_id)] = dict(chat_counts)
+        await self.client.db.set('topstat_counts', all_counts)
+
+    @register_message_handler(events.NewMessage(incoming=True, func=lambda e: e.is_group and e.message.text))
+    async def _message_counter(self, event):
+        sender = await event.get_sender()
+        if not sender or sender.bot or sender.deleted:
             return
 
-        processing_message = utils.answer(message, "Собираю статистику сообщений, это может занять некоторое время...")
-
-        msg_counts = defaultdict(int)
-        users_info = {}
-        total_messages_scanned = 0
-
-        messages_limit_default = 5000
-        top_n_limit_default = 10
+        chat_id = event.chat_id
+        user_id = sender.id
         
-        min_messages_limit = 100
-        max_messages_limit = 20000
-        min_top_n = 1
-        max_top_n = 50 
+        chat_counts = await self._get_chat_counts(chat_id)
+        chat_counts[str(user_id)] += 1
+        await self._set_chat_counts(chat_id, chat_counts)
 
-        current_messages_limit = messages_limit_default
-        current_top_n_limit = top_n_limit_default
-
-        args = utils.get_args(message)
-        
-        # Parse arguments: [messages_limit] [top_n_limit]
-        if args:
-            if len(args) >= 1 and args[0].isdigit():
-                requested_messages_limit = int(args[0])
-                if requested_messages_limit < min_messages_limit:
-                    current_messages_limit = min_messages_limit
-                    await utils.answer_message(message, f"Лимит сообщений слишком мал ({requested_messages_limit}), установлен минимум: {min_messages_limit}", reply_to=processing_message)
-                elif requested_messages_limit > max_messages_limit:
-                    current_messages_limit = max_messages_limit
-                    await utils.answer_message(message, f"Лимит сообщений слишком велик ({requested_messages_limit}), установлен максимум: {max_messages_limit}", reply_to=processing_message)
-                else:
-                    current_messages_limit = requested_messages_limit
-
-            if len(args) >= 2 and args[1].isdigit():
-                requested_top_n_limit = int(args[1])
-                if requested_top_n_limit < min_top_n:
-                    current_top_n_limit = min_top_n
-                    await utils.answer_message(message, f"Количество пользователей в топе слишком маловато ({requested_top_n_limit}), установлен минимум: {min_top_n}", reply_to=processing_message)
-                elif requested_top_n_limit > max_top_n:
-                    current_top_n_limit = max_top_n
-                    await utils.answer_message(message, f"Количество пользователей в топе слишком дахуя ({requested_top_n_limit}), установлен максимум: {max_top_n}", reply_to=processing_message)
-                else:
-                    current_top_n_limit = requested_top_n_limit
-        
-        try:
-            async for msg in self.client.iter_messages(chat_entity, limit=current_messages_limit):
-                total_messages_scanned += 1
-                if msg.sender and msg.sender.id:
-                    user_id = msg.sender.id
-                    msg_counts[user_id] += 1
-                    if user_id not in users_info:
-                        users_info[user_id] = msg.sender
-        except Exception as e:
-            logger.error(f"Error collecting stats in chat {chat_entity.id}: {e}", exc_info=True)
-            await utils.answer_message(message, f"Ошибка статистики: {e}", reply_to=processing_message)
-            await processing_message.delete()
+    @register_cmd(pattern="^.top$", description="Показывает топ-10 пользователей по сообщениям в текущем чате.")
+    async def msgtopcmd(self, event):
+        if not event.is_group:
+            await self.client.send_message(event.chat_id, "Эту команду можно использовать только в группах.", reply_to=event.id)
             return
 
-        if not msg_counts:
-            await utils.answer_message(message, f"Не удалось собрать статистику сообщений в этом чате или в заданном ыыыыы ({current_messages_limit} сообщений).", reply_to=processing_message)
-            await processing_message.delete()
+        chat_id = event.chat_id
+        chat_counts = await self._get_chat_counts(chat_id)
+        
+        if not chat_counts:
+            await self.client.send_message(event.chat_id, "Пока нет статистики сообщений в этом чате. Начните общаться, чтобы собрать топ!", reply_to=event.id)
             return
 
-        sorted_users = sorted(msg_counts.items(), key=lambda item: item[1], reverse=True)
-
-        top_count_actual = min(len(sorted_users), current_top_n_limit)
+        sorted_users = sorted(chat_counts.items(), key=lambda item: item[1], reverse=True)
         
-        top_message = f"**Топ {top_count_actual} пользователей по сообщениям " \
-                      f"(просканировано {total_messages_scanned} сообщений):**\n\n"
+        top_message = "📊 **Топ 10 по сообщениям в чате:**\n\n"
         
-        for i, (user_id, count) in enumerate(sorted_users[:top_count_actual]):
-            user = users_info.get(user_id)
-            user_name = "Неизвестный пользователь"
-            if user:
-                display_name = utils.get_display_name(user)
-                if display_name:
-                    user_name = display_name
-                elif user.deleted:
-                    user_name = "Удаленный аккаунт"
-                elif user.bot:
-                    user_name = f"Бот: {user.first_name or user.id}"
-                else:
-                    # Fallback if get_display_name is empty but user exists and is not deleted/bot
-                    user_name = f"Пользователь {user.id}" 
-
-            top_message += f"{i+1}. [{user_name}](tg://user?id={user_id}) - {count} сообщений\n"
-        
-        await utils.answer_message(message, top_message, parse_mode='md')
-        await processing_message.delete()
+        for i, (user_id_str, count) in enumerate(sorted_users[:10]):
+            try:
+                user_id = int(user_id_str)
+                user = await self.client.get_entity(user_id)
+                
+                display_name = user.first_name if user.first_name else ""
+                if user.last_name:
+                    display_name += f" {user.last_name}"
+                if not display_name: 
+                    display_name = user.username if user.username else str(user.id)
+                
+                user_link = f"[{display_name}](tg://user?id={user.id})"
+                
+                top_message += f"{i+1}. {user_link}: **{count}** сообщений\n"
+            except Exception:
+                top_message += f"{i+1}. Пользователь `{user_id_str}`: **{count}** сообщений (недоступен или удален)\n"
+        await self.client.send_message(event.chat_id, top_message, reply_to=event.id, parse_mode='md')
